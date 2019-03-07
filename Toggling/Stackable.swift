@@ -15,9 +15,6 @@ protocol StackHost: AnyObject {
 
 class Stacked {
     
-    var previous: Stacked? = nil
-    var next: Stacked? = nil
-    
     let view: UIView
     var toAboveY: NSLayoutConstraint? = nil
     var horizontalConstraints: [NSLayoutConstraint] = []
@@ -35,11 +32,17 @@ class Stacked {
 
 extension StackHost {
     
+    // UIKit - Peer subview at index 0 appears beneath all peers.
+    
+    typealias Indexed = (i: Int, stacked: Stacked)
+    
     func stackViews(_ views: [UIView]) {
         self.stack.forEach({
             $0.view.removeFromSuperview()
         })
-        let stack = views.map({ return setUp($0) })
+        let stack = views.map({
+            setUp($0, precedence: 0)
+        })
         for (i, stacked) in stack.enumerated() {
             if i == 0 {
                 stacked.bindTo(stackContainer)
@@ -52,16 +55,21 @@ extension StackHost {
     }
     
     func slideDownAndIn(_ view: UIView, beneath: UIView) {
-        guard let high = stacked(beneath), stacked(view) == nil else { fatalError() }
-        let middle = setUp(view)
-        let low = stackedBeneath(high)
-        middle.bindTo(high, relativePosition: .behind)
+        guard
+            let high = stacked(beneath),
+            stacked(view) == nil,
+            let highSubviewIndex = subviewIndexFor(high.stacked.view)
+            else { fatalError() }
+        let middleStacked = setUp(view, precedence: highSubviewIndex)
+        let low = stackedBeneath(high.stacked)
+        middleStacked.bindTo(high.stacked, relativePosition: .behind)
         stackContainer.layoutIfNeeded()
         UIView.animate(withDuration: 1.0) {
-            middle.bindTo(high, relativePosition: .beneath)
-            low?.bindTo(middle, relativePosition: .beneath)
+            middleStacked.bindTo(high.stacked, relativePosition: .beneath)
+            low?.stacked.bindTo(middleStacked, relativePosition: .beneath)
             self.stackContainer.layoutIfNeeded()
         }
+        stack.insert(middleStacked, at: high.i + 1)
     }
     
     func slideDownAndInAtBottom(_ view: UIView) {
@@ -77,30 +85,31 @@ extension StackHost {
         return stack.map({ return $0.view })
     }
     
-    func stackedBeneath(_ stacked: Stacked) -> Stacked? {
+    func stackedBeneath(_ stacked: Stacked) -> Indexed? {
         guard
             let i = stack.firstIndex(where: { $0 === stacked }),
             i < stack.count - 1
             else { return nil }
-        return stack[i + 1]
+        return (i + 1, stack[i + 1])
     }
     
-    func stackedAbove(_ stacked: Stacked) -> Stacked? {
+    func stackedAbove(_ stacked: Stacked) -> Indexed? {
         guard
             let i = stack.firstIndex(where: { $0 === stacked }),
             i > 0
             else { return nil }
-        return stack[i - 1]
+        return (i - 1, stack[i - 1])
     }
     
-    func stacked(_ view: UIView) -> Stacked? {
-        return stack.first(where: { $0.view === view })
+    func stacked(_ view: UIView) -> Indexed? {
+        guard let i = stack.firstIndex(where: { $0.view === view }) else { return nil }
+        return (i, stack[i])
     }
     
-    func setUp(_ view: UIView) -> Stacked {
+    func setUp(_ view: UIView, precedence: Int) -> Stacked {
         guard !views.contains(view) else { fatalError() }
         view.translatesAutoresizingMaskIntoConstraints = false
-        stackContainer.addSubview(view)
+        stackContainer.insertSubview(view, at: precedence)
         let horizontalConstraints = [
             view.leftAnchor.constraint(equalTo: stackContainer.leftAnchor),
             view.rightAnchor.constraint(equalTo: stackContainer.rightAnchor)
@@ -109,6 +118,11 @@ extension StackHost {
         let stacked = Stacked(view)
         stacked.horizontalConstraints = horizontalConstraints
         return stacked
+    }
+    
+    func subviewIndexFor(_ view: UIView) -> Int? {
+        guard let subviews = view.superview?.subviews else { return nil }
+        return subviews.firstIndex(where: { $0 === view })
     }
     
 }
