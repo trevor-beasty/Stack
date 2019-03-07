@@ -78,7 +78,21 @@ extension StackHost {
     }
     
     func slideUpAndOut(_ view: UIView) {
-        
+        guard
+            let middle = stacked(view),
+            let high = stackedAbove(middle.stacked)
+            else { fatalError() }
+        let low = stackedBeneath(middle.stacked)
+        UIView.animate(
+            withDuration: 1.0,
+            animations: {
+                middle.stacked.bindTo(high.stacked, relativePosition: .behind)
+                low?.stacked.bindTo(high.stacked, relativePosition: .beneath)
+                self.stackContainer.layoutIfNeeded()
+        }) { _ in
+            middle.stacked.view.removeFromSuperview()
+        }
+        stack.remove(at: middle.i)
     }
     
     var views: [UIView] {
