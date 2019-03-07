@@ -35,6 +35,10 @@ class StackedExample: UIViewController, StackHost {
             self.slideUpAndOut(self.c2)
         }
         
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            self.slideDownAndIn(self.c5, beneath: self.c3)
+        }
+        
     }
     
     func insert(_ view: UIView, deadline: DispatchTime) {
