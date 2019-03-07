@@ -16,9 +16,9 @@ class FlatToggle: UIViewController {
     
     let tap = UITapGestureRecognizer()
     
-    let c0 = FlatToggle.createComponent(color: .red)
-    let c1 = FlatToggle.createComponent(color: .blue)
-    let c2 = FlatToggle.createComponent(color: .green)
+    let c0 = FlatToggle.createComponent(color: .red, text: "21")
+    let c1 = FlatToggle.createComponent(color: .blue, text: "Savage")
+    let c2 = FlatToggle.createComponent(color: .green, text: "21, 21, 21")
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,15 +28,12 @@ class FlatToggle: UIViewController {
         stack.alignment = .fill
         stack.spacing = 0
         
-        view.addSubview(scroll)
-        scroll.fillSuperview()
+        scroll.fill(view)
         
-        scroll.addSubview(container)
-        container.fillSuperview()
+        container.fill(scroll)
         container.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
         
-        container.addSubview(stack)
-        stack.fillSuperview()
+        stack.fill(container)
         
         [c0, c1, c2].forEach({
             stack.addArrangedSubview($0)
@@ -60,8 +57,12 @@ class FlatToggle: UIViewController {
         }
     }
     
-    static func createComponent(color: UIColor) -> UIView {
+    static func createComponent(color: UIColor, text: String) -> UIView {
         let component = UIView()
+        let label = UILabel()
+        label.text = text
+        label.centerIn(component)
+        label.textColor = .white
         component.translatesAutoresizingMaskIntoConstraints = false
         component.heightAnchor.constraint(equalToConstant: 100).isActive = true
         component.backgroundColor = color
@@ -73,14 +74,24 @@ class FlatToggle: UIViewController {
 
 extension UIView {
     
-    func fillSuperview() {
-        guard let superview = superview else { fatalError() }
+    func fill(_ other: UIView) {
+        other.addSubview(self)
         translatesAutoresizingMaskIntoConstraints = false
         let constraints: [NSLayoutConstraint] = [
-            leftAnchor.constraint(equalTo: superview.leftAnchor),
-            rightAnchor.constraint(equalTo: superview.rightAnchor),
-            topAnchor.constraint(equalTo: superview.topAnchor),
-            bottomAnchor.constraint(equalTo: superview.bottomAnchor)
+            leftAnchor.constraint(equalTo: other.leftAnchor),
+            rightAnchor.constraint(equalTo: other.rightAnchor),
+            topAnchor.constraint(equalTo: other.topAnchor),
+            bottomAnchor.constraint(equalTo: other.bottomAnchor)
+        ]
+        NSLayoutConstraint.activate(constraints)
+    }
+    
+    func centerIn(_ other: UIView) {
+        other.addSubview(self)
+        translatesAutoresizingMaskIntoConstraints = false
+        let constraints: [NSLayoutConstraint] = [
+            centerXAnchor.constraint(equalTo: other.centerXAnchor),
+            centerYAnchor.constraint(equalTo: other.centerYAnchor)
         ]
         NSLayoutConstraint.activate(constraints)
     }
